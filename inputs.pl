@@ -24,30 +24,46 @@ RNBQKBNRPPPPPPPP--------------------------------pppppppprnbqkbnr
 */
 
 % Validates the input length and number of found kings
-validate_position_counts([], 0, 0, 0).
-validate_position_counts([Head|Tail], N, WK, BK) :- validate_position_counts(Tail, N1, WK1, BK1),
+% (+List of character codes, -Length of list, -Amount of white kings, -Amount of black kings, -Number of invalid character codes in input)
+validate_position_counts([], 0, 0, 0, 0).
+validate_position_counts([Head|Tail], N, WK, BK, Invalid) :- validate_position_counts(Tail, N1, WK1, BK1, Invalid1),
     N is N1+1,
     atom_codes(Character ,[Head]),
+    whitePieces(WP),
+    blackPieces(BP),
+    emptySpace(S),
     (
+        % Found a black king
         Character = 'k' ->
         BK is BK1 + 1,
-        WK is WK1
+        WK is WK1,
+        Invalid is Invalid1
         ;
+        % Found a white king
         Character = 'K' ->
         BK is BK1,
-        WK is WK1 + 1
+        WK is WK1 + 1,
+        Invalid is Invalid1
         ;
+        % No kings, but the character is valid
+        (member(Character, WP); member(Character, BP); member(Character, S)
+        ) ->
         BK is BK1,
-        WK is WK1
+        WK is WK1,
+        Invalid is Invalid1
+        ;
+        % Found an invalid character
+        BK is BK1,
+        WK is WK1,
+        Invalid is Invalid1 + 1
     ).
 
 validate_input(Codes) :-
-    validate_position_counts(Codes, X, WK, BK),
-    write(X),
+    validate_position_counts(Codes, Length, WK, BK, Invalid),
     (
-        X = 65, WK = 1, BK = 1 ->
-        write('')
+        Length = 64, WK = 1, BK = 1, Invalid = 0 ->
+        write('Semantically correct input. \n')
         ;
-        write('Incorrect length or incorrect number of kings.'),
+        write('Incorrect length or incorrect number of kings. \n'),
         fail
     ).
