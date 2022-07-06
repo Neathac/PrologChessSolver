@@ -139,8 +139,8 @@ exploreKingThreats(X, Y, Board, Color, Threats, BlockedThreats, ThreatBlockers, 
     bishopDirs(BishopDirs),
     rookDirs(RookDirs),
     knightThreats(KnightDirs ,X, Y, Board, Color, KnightThreats, IsKingThreatenedByKnight),
-    diagonalThreats(BishopDirs ,X, Y, Board, Color, DiagonalThreats, IsKingThreatenedDiagonally),
-    lineThreats(RookDirs ,X, Y, Board, Color, LineThreats, IsKingThreatenedInLine),
+    continuousThreats(BishopDirs ,X, Y, Board, Color, DiagonalThreats, IsKingThreatenedDiagonally, bishop),
+    continuousThreats(RookDirs ,X, Y, Board, Color, LineThreats, IsKingThreatenedInLine, rook),
     pawnThreats().
 
 knightThreats([], X, Y, Board, Color, [], 0).
@@ -149,13 +149,41 @@ knightThreats([(X, Y)| Tail], CurrX, CurrY, Board, Color, FoundThreats, IsKingTh
     XMove is X + CurrX,
     YMove is Y + CurrY,
     (
-        isSquareHostile(Board, XMove, YMove, Color), member(piece(Color, knight, XMove, YMove)) ->
+        isSquareHostile(Board, XMove, YMove, Color), member(piece(_, knight, XMove, YMove), Board) ->
         IsKingThreatened is NewIsKingThreatened + 1,
         append([(XMove, YMove)], NewFoundThreats, FoundThreats)
         ;
         IsKingThreatened is NewIsKingThreatened,
         append([], NewFoundThreats, FoundThreats)  
     ).
+
+continuousThreats([], X, Y, Board, Color, [], 0, Piece).
+continuousThreats([HeadDir|Tail], X, Y, Board, Color, FoundThreats, IsKingThreatened, Piece) :-
+    continuousDirectionThreat(HeadDir, X, Y, Board, Color, FoundThreat, DidFindThreat, Piece),
+    continuousThreats(Tail, X, Y, Board, Color, NewFoundThreats, NewIsKingThreatened, Piece),
+    IsKingThreatened is DidFindThreat + NewIsKingThreatened,
+    append(NewFoundThreats, FoundThreat, FoundThreats).
+
+pawnThreats(Board, X, Y, white, FoundThreats) :-
+    
+
+continuousDirectionThreat((XDir, YDir), X, Y, Board, Color, FoundThreat, DidFindThreat, Piece) :-
+    XStep is XDir + X,
+    YStep is YDir + Y,
+    (
+        isSquareHostile(Board, XStep, YStep, Color), (member(piece(_, Piece, XStep, YStep), Board); member(piece(_, queen, XStep, YStep))) ->
+        DidFindThreat is 1, % Potential expected evaluable error here
+        append([], [(XStep, YStep)], FoundThreat)
+        ;
+        withinBounds(XStep, YStep), \+isSquareFriendly(Board, XStep, YStep, Color) ->
+        continuousDirectionThreat((XDir, YDir), XStep, YStep, Board, Color, NewFoundThreat, NewThreatIndicator),
+        append([], NewFoundThreat, FoundThreat),
+        DidFindThreat is NewThreatIndicator
+        ;
+        DidFindThreat is 0, % Another expected value threat
+        append([], [], DidFindThreat)
+    ).
+
 
 withinBounds(X,Y) :- X > 0, X < 9, Y > 0, Y < 9.
 
