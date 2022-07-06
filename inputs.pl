@@ -20,7 +20,11 @@ instructions(_) :-
 
 /*
 Test input:
-RNBQKBNRPPPPPPPP--------------------------------pppppppprnbqkbnr
+-------- // 8 Spaces
+RNBQKBNRPPPPPPPP // Default white
+pppppppprnbqkbnr // Default black
+RNBQKBNRPPPPPPPP--------------------------------pppppppprnbqkbnr // Default position
+RNBQKBNRPPPPPPPPR-------------------------------pppppppprnbqkbnr // White rook in front of white pawns
 */
 
 % Validates the input length and number of found kings

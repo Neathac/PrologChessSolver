@@ -1,12 +1,5 @@
 % Checks legality of moves
 
-% Is the 
-withinBounds(CurrX,CurrY) :-
-    CurrX < 9,
-    CurrX > -1,
-    CurrY < 9,
-    CurrY > -1.
-
 % List of viable pieces used for move validity
 blackPieces(X) :- X = ['p','r','n','b','q','k'].
 whitePieces(X) :- X = ['P','R','N','B','Q','K'].
@@ -35,18 +28,42 @@ queenDirs(X) :- X = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)].
 kingDirs(X) :- X = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)].
 
 % Get legal moves for a given piece. Branch for specific pieces based on type of piece
-getPieceMoves(piece(Color, pawn, X, Y), Board).
-getPieceMoves(piece(Color, rook, X, Y), Board) :- 
-    rookDirs(Dirs).
-getPieceMoves(piece(Color, queen, X, Y), Board) :- 
-    queenDirs(Dirs).
-getPieceMoves(piece(Color, king, X, Y), Board) :- 
-    kingDirs(Dirs).
-getPieceMoves(piece(Color, knight, X, Y), Board) :- 
-    knightDirs(Dirs).
-getPieceMoves(piece(Color, bishop, X, Y), Board) :- 
-    bishopDirs(Dirs).
+getPieceMoves(piece(white, pawn, X, Y), Board, FoundLegalMoves) :-
+    explorePawnTakes([(1, 1), (1, -1)], white, X, Y, Board, FoundTakes),
+    (
+        % Pawn can make a double move
+        X = 2 ->
+        explorePawnMoves([(1, 0), (2, 0)], white, X, Y, Board, FoundMoves)
+        ;
+        explorePawnMoves([(1, 0)], white, X, Y, Board, FoundMoves)
+    ),
+    append(FoundTakes, FoundMoves, FoundLegalMoves).
 
+getPieceMoves(piece(black, pawn, X, Y), Board, FoundLegalMoves) :-
+    explorePawnTakes([(-1, 1), (-1, -1)], black, X, Y, Board, FoundTakes),
+    (
+        % Pawn can make a double move
+        X = 7 ->
+        explorePawnMoves([(-1, 0), (-2, 0)], black, X, Y, Board, FoundMoves)
+        ;
+        explorePawnMoves([(-1, 0)], black, X, Y, Board, FoundMoves)
+    ),
+    append(FoundTakes, FoundMoves, FoundLegalMoves).
+    
+getPieceMoves(piece(Color, rook, X, Y), Board, FoundLegalMoves) :-
+    rookDirs(Dirs),
+    exploreContinuousDirs(Dirs, Board, X, Y, Color, LegalMoves),
+    append(LegalMoves, [], FoundLegalMoves).
+getPieceMoves(piece(Color, queen, X, Y), Board, FoundLegalMoves) :- 
+    queenDirs(Dirs),
+    exploreContinuousDirs(Dirs, Board, X, Y, Color, LegalMoves),
+    append(LegalMoves, [], FoundLegalMoves).
+getPieceMoves(piece(Color, bishop, X, Y), Board, FoundLegalMoves) :- 
+    bishopDirs(Dirs),
+    exploreContinuousDirs(Dirs, Board, X, Y, Color, LegalMoves),
+    append(LegalMoves, [], FoundLegalMoves).
+getPieceMoves(piece(Color, knight, X, Y), Board, FoundLegalMoves).
+getPieceMoves(piece(Color, king, X, Y), Board, FoundLegalMoves).
 % (+Directions in which the piece moves, +State of the board, +Piece row, +Piece column, +PieceColor, -List of possible moves)
 % Used for the queen, the bishop, and the rook, as there is no set distance the piece has or can travel as long as unobstructed
 exploreContinuousDirs([], Board, X, Y, Color, []).
@@ -57,18 +74,87 @@ exploreContinuousDirs([HeadDir|TailDirs], Board, X, Y, Color, MoveList) :-
 
 % (+Directional coordinates, +Board state, +Previous X coordinate, +Previous Y coordinate, +Color of piece being moved, -Legal moves )
 exploreContinuousDirection((XDir, YDir), Board, PrevX, PrevY, Color, FoundMoves) :-
+    writeln(FoundMoves),
+    Xmove is XDir + PrevX,
+    Ymove is YDir + PrevY,
+    writeln(Xmove),
+    writeln(Ymove),
+    ( 
+        isSquareFriendly(Board, Xmove, Ymove, Color) ->
+        append([], [], FoundMoves)
+        ;
+        isSquareHostile(Board, Xmove, Ymove, Color) ->
+        append([], [(Xmove, Ymove)], FoundMoves) 
+        ;
+        withinBounds(Xmove, Ymove) ->
+
+        exploreContinuousDirection((XDir, YDir), Board, Xmove, Ymove, Color, NewFoundMoves),
+        append([(Xmove, Ymove)], NewFoundMoves, FoundMoves)
+        ;
+        append([], [], FoundMoves)
+    ).
+
+explorePawnTakes([], Color, X, Y, Board, []).
+explorePawnTakes([(X,Y)|Tail],Color, CurrX, CurrY, Board, FoundMoves) :-
+    explorePawnTakes(Tail, Color, Board, CurrX, CurrY, FoundLegalMoves),
+    TakeX is X + CurrX,
+    TakeY is Y + CurrY,
     (
-        isSquareFriendly(Board, XDir + PrevX, YDir + PrevY, Color) ->
-        FoundMoves is []
+        % No need to check for bounds. Hostility fails if there is no enemy piece on specified coordinates
+        isSquareHostile(Board, TakeX, TakeY, Color) ->
+        append([(TakeX, TakeY)], FoundLegalMoves, FoundMoves)
         ;
-        isSquareHostile(Board, XDir + PrevX, YDir + PrevY, Color) ->
-        FoundMoves is [(XDir + PrevX, YDir + PrevY)]
+        append([], FoundLegalMoves, FoundMoves)
+    ).
+
+explorePawnMoves([], Color, X, Y, Board, []).
+explorePawnMoves([(X,Y)|Tail], Color, CurrX, CurrY, Board, FoundMoves) :-
+    explorePawnMoves(Tail, Color, CurrX, CurrY, Board, FoundLegalMoves),
+    MoveX is CurrX + X,
+    MoveY is CurrY + Y,
+    (
+        (isSquareHostile(Board, MoveX, MoveY, Color) ; isSquareFriendly(Board, MoveX, MoveY, Color) ; \+withinBounds(MoveX, MoveY))  ->
+        % The next square not being taken is nice, but the pawn is blocked - Ignore found moves from potential second iteration
+        append([], [], FoundMoves)
         ;
-        withinBounds(XDir + PrevX, YDir + PrevY) ->
-        exploreContinuousDirection((XDir, YDir), Board, PrevX + XDir, PrevY + YDir, Color, NewFoundMoves),
-        append([(PrevX, PrevY)], NewFoundMoves, FoundMoves)
+        append([(MoveX, MoveY)], FoundLegalMoves, FoundMoves)   
+    ).
+
+exploreKnightMoves([], Color, X, Y, Board, []).
+exploreKnightMoves([(X, Y)|Tail], Color, CurrX, CurrY, Board, FoundMoves) :-
+    exploreKnightMoves(Tail, Color, CurrX, CurrY, Board, FoundLegalMoves),
+    XMove is X + CurrX,
+    YMove is Y + CurrY,
+    (
+        \+isSquareFriendly(Board, XMove, YMove, Color), withinBounds(XMove, YMove) ->
+        append(FoundLegalMoves, [(XMove, YMove)], FoundMoves)
         ;
-        FoundMoves is []
+        append(FoundLegalMoves, [], FoundMoves)
+    ).
+
+% (+Coordinates of square with king, +State of the board, + Color of the king, - Pieces directly threatening the king
+    % - Pieces that would threaten the king if something moved paired with blockers, - Is the square checked)
+exploreKingThreats(X, Y, Board, Color, Threats, BlockedThreats, ThreatBlockers, IsKingThreatened) :-
+    knightDirs(KnightDirs),
+    bishopDirs(BishopDirs),
+    rookDirs(RookDirs),
+    knightThreats(KnightDirs ,X, Y, Board, Color, KnightThreats, IsKingThreatenedByKnight),
+    diagonalThreats(BishopDirs ,X, Y, Board, Color, DiagonalThreats, IsKingThreatenedDiagonally),
+    lineThreats(RookDirs ,X, Y, Board, Color, LineThreats, IsKingThreatenedInLine),
+    pawnThreats().
+
+knightThreats([], X, Y, Board, Color, [], 0).
+knightThreats([(X, Y)| Tail], CurrX, CurrY, Board, Color, FoundThreats, IsKingThreatened) :-
+    knightThreats(Tail, CurrX, CurrY, Board, Color, NewFoundThreats, NewIsKingThreatened),
+    XMove is X + CurrX,
+    YMove is Y + CurrY,
+    (
+        isSquareHostile(Board, XMove, YMove, Color), member(piece(Color, knight, XMove, YMove)) ->
+        IsKingThreatened is NewIsKingThreatened + 1,
+        append([(XMove, YMove)], NewFoundThreats, FoundThreats)
+        ;
+        IsKingThreatened is NewIsKingThreatened,
+        append([], NewFoundThreats, FoundThreats)  
     ).
 
 withinBounds(X,Y) :- X > 0, X < 9, Y > 0, Y < 9.

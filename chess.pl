@@ -10,6 +10,8 @@ start :-
     read_line_to_codes(user_input,Cs),
     validate_input(Cs),
     constructBoard(Cs, X, Y, Board),
+    getPieceMoves(piece(white, rook, 1,3), Board, FoundMoves),
+    writeln(FoundMoves),
     writeln(Board).
 
 % (+List of character codes, ?X coordinate, ?Y coordinate, -Board array of piece data structures)
