@@ -25,6 +25,11 @@ RNBQKBNRPPPPPPPP // Default white
 pppppppprnbqkbnr // Default black
 RNBQKBNRPPPPPPPP--------------------------------pppppppprnbqkbnr // Default position
 RNBQKBNRPPPPPPPPR-------------------------------pppppppprnbqkbnr // White rook in front of white pawns
+RNBQKBNRPPPPPPPPn-------------------------------pppppppprnbqkbnr // Black knight in front of white pawns
+RNBQKBNRPPPPPPPPB-------------------------------pppppppprnbqkbnr // White bishop in front of white pawns
+RNBQKBNRPPPPPPPPp-------------------------------pppppppprnbqkbnr // Black pawn in front of white pawns
+RNBQKBNRPPPPPPPPk-------------------------------pppppppprnbq-bnr // Black king in front of white pawns
+RNBQKBNRP-PPPPPPkP------------------------------pppppppprnbq-bnr // Black king exposed to white knight and bishop
 */
 
 % Validates the input length and number of found kings
