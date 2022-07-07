@@ -248,10 +248,3 @@ continuousDirectionThreat((XDir, YDir), X, Y, Board, Color, FoundThreat, DidFind
         DidFindThreat is 0, % Another expected value threat
         append([], [], FoundThreat)
     ).
-
-
-withinBounds(X,Y) :- X > 0, X < 9, Y > 0, Y < 9.
-
-isSquareFriendly(Board, X, Y, Color) :- member(piece(Color, _, X, Y), Board).
-isSquareHostile(Board, X, Y, black) :- member(piece(white, _, X, Y), Board).
-isSquareHostile(Board, X, Y, white) :- member(piece(black, _, X, Y), Board).
