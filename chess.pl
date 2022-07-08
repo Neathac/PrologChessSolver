@@ -10,11 +10,12 @@ start :-
     read_line_to_codes(user_input,Cs),
     validate_input(Cs),
     constructBoard(Cs, _, _, Board, WhitePieces, BlackPieces),
-    member(piece(white, king, SomeX, SomeY), Board),
-    writeln(SomeX). 
+    generateMoves(Board, white, WhitePieces, LegalMoves),
+%    getPieceMoves(piece(white, queen, 3, 1), Board, LegalMoves),
+    writeln(LegalMoves). 
 
 % (+List of character codes, ?X coordinate, ?Y coordinate, -Board array of piece data structures)
-constructBoard([], 1, 9, []).
+constructBoard([], 1, 9, [], [], []).
 constructBoard([Head|Tail], X, Y, ExpandedList, WhitePieces, BlackPieces) :- 
     constructBoard(Tail, X1, Y1, List, NewWhitePieces, NewBlackPieces),
     (
@@ -33,21 +34,30 @@ constructBoard([Head|Tail], X, Y, ExpandedList, WhitePieces, BlackPieces) :-
     append([piece(Color, Piece, X, Y)], List, ExpandedList),
     (
         Color = white ->
-        append(NewWhitePieces, [piece(Color, Piece, X, Y)], WhitePieces)
+        append(NewWhitePieces, [piece(Color, Piece, X, Y)], WhitePieces),
+        append(NewBlackPieces, [], BlackPieces)
         ;
-        append(NewBlackPieces, [piece(Color, Piece, X, Y)], BlackPieces)
+        Color = black ->
+        append(NewBlackPieces, [piece(Color, Piece, X, Y)], BlackPieces),
+        append(NewWhitePieces, [], WhitePieces)
+        ;
+        append(NewWhitePieces, [], WhitePieces),
+        append(NewBlackPieces, [], BlackPieces)
     ).
 
 generateMoves(_, _, [], []).
 generateMoves(Board, Color, [Piece|Pieces], LegalMoves) :-
+    writeln('Generating'),
+    writeln(Pieces),
     generateMoves(Board, Color, Pieces, NewLegalMoves),
     getPieceMoves(Piece, Board, PossibleMoves),
-    BoardCopy is Board,
-    validateMoves(BoardCopy, Color, Piece, PossibleMoves, ValidMoves),
+    writeln(Piece),
+    validateMoves(Board, Color, Piece, PossibleMoves, ValidMoves),
+    writeln(ValidMoves),
     append(NewLegalMoves, [(Piece,ValidMoves)], LegalMoves).
 
 validateMoves(_, _, _, [], []).
-validateMoves(Board, piece(Color, Kind, X, Y), [(MoveX, MoveY)| Moves], ValidMoves) :-
+validateMoves(Board, Color, piece(Color, Kind, X, Y), [(MoveX, MoveY)| Moves], ValidMoves) :-
     validateMoves(Board, Color, Piece, Moves, NewValidMoves),
     replaceP(piece(_, _, X, Y), piece(neutral, empty, X, Y), Board, NewBoard),
     replaceP(piece(_, _, MoveX, MoveY), piece(Color, Kind, MoveX, MoveY), NewBoard, FinalPosition),

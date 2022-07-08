@@ -57,6 +57,7 @@ getPieceMoves(piece(Color, rook, X, Y), Board, FoundLegalMoves) :-
 getPieceMoves(piece(Color, queen, X, Y), Board, FoundLegalMoves) :- 
     queenDirs(Dirs),
     exploreContinuousDirs(Dirs, Board, X, Y, Color, LegalMoves),
+    writeln(LegalMoves),
     append(LegalMoves, [], FoundLegalMoves).
 getPieceMoves(piece(Color, bishop, X, Y), Board, FoundLegalMoves) :- 
     bishopDirs(Dirs),
@@ -73,6 +74,8 @@ exploreContinuousDirs([], _, _, _, _, []).
 exploreContinuousDirs([HeadDir|TailDirs], Board, X, Y, Color, MoveList) :-
     exploreContinuousDirection(HeadDir, Board, X, Y, Color, ListOfMoves),
     exploreContinuousDirs(TailDirs, Board, X, Y, Color, NewMoveList),
+    writeln([HeadDir|TailDirs]),
+    writeln(ListOfMoves),
     append(ListOfMoves, NewMoveList, MoveList).
 
 % (+Directional coordinates, +Board state, +Previous X coordinate, +Previous Y coordinate, +Color of piece being moved, -Legal moves )
@@ -80,14 +83,13 @@ exploreContinuousDirection((XDir, YDir), Board, PrevX, PrevY, Color, FoundMoves)
     Xmove is XDir + PrevX,
     Ymove is YDir + PrevY,
     ( 
-        isSquareFriendly(Board, Xmove, Ymove, Color) ->
+        isSquareFriendly(Board, Ymove, Xmove, Color) ->
         append([], [], FoundMoves)
         ;
-        isSquareHostile(Board, Xmove, Ymove, Color) ->
+        isSquareHostile(Board, Ymove, Xmove, Color) ->
         append([], [(Xmove, Ymove)], FoundMoves) 
         ;
         withinBounds(Xmove, Ymove) ->
-
         exploreContinuousDirection((XDir, YDir), Board, Xmove, Ymove, Color, NewFoundMoves),
         append([(Xmove, Ymove)], NewFoundMoves, FoundMoves)
         ;
@@ -168,10 +170,7 @@ knightThreats([(X, Y)| Tail], CurrX, CurrY, Board, Color, FoundThreats, IsKingTh
 % Checks by queens, rooks, and bishops
 continuousThreats([], _, _, _, _, [], 0, _).
 continuousThreats([HeadDir|Tail], X, Y, Board, Color, FoundThreats, IsKingThreatened, Piece) :-
-    writeln('I got to the second recursion level'),
     continuousDirectionThreat(HeadDir, X, Y, Board, Color, FoundThreat, DidFindThreat, Piece),
-    writeln(FoundThreat),
-    writeln(DidFindThreat),
     continuousThreats(Tail, X, Y, Board, Color, NewFoundThreats, NewIsKingThreatened, Piece),
     IsKingThreatened is DidFindThreat + NewIsKingThreatened,
     append(NewFoundThreats, FoundThreat, FoundThreats).
@@ -220,23 +219,25 @@ pawnThreats(Board, X, Y, black, FoundThreats) :-
     append(LeftThreat, RightThreat, FoundThreats).
 
 % Checks by the enemy king
-kingThreats([], _, _, _, _, []).
-kingThreats([(XDir, YDir)| Tail], Board, Color, X, Y, FoundThreats) :-
-    kingThreats(Tail, Board, Color, X, Y, NewFoundThreats),
+kingThreats([], _, _, _, _, [], 0).
+kingThreats([(XDir, YDir)| Tail], Board, Color, X, Y, FoundThreats, FoundNumberOfThreats) :-
+    kingThreats(Tail, Board, Color, X, Y, NewFoundThreats, NewFoundNumberOfThreats),
     XMove is XDir + X,
     YMove is YDir + Y,
     (
-        isSquareHostile(Board, XMove, YMove, Color), member(piece(_, king, XMove, YMove)) ->
-        append(NewFoundThreats, [(XMove, YMove)], FoundThreats)
+        isSquareHostile(Board, XMove, YMove, Color), member(piece(_, king, XMove, YMove), Board) ->
+        append(NewFoundThreats, [(XMove, YMove)], FoundThreats),
+        FoundNumberOfThreats is NewFoundNumberOfThreats + 1
         ;
-        append([], NewFoundThreats, FoundThreats)
+        append([], NewFoundThreats, FoundThreats),
+        FoundNumberOfThreats is NewFoundNumberOfThreats
     ).
 
 continuousDirectionThreat((XDir, YDir), X, Y, Board, Color, FoundThreat, DidFindThreat, Piece) :-
     XStep is XDir + X,
     YStep is YDir + Y,
     (
-        isSquareHostile(Board, XStep, YStep, Color), (member(piece(_, Piece, XStep, YStep), Board); member(piece(_, queen, XStep, YStep))) ->
+        isSquareHostile(Board, XStep, YStep, Color), (member(piece(_, Piece, XStep, YStep), Board); member(piece(_, queen, XStep, YStep), Board)) ->
         DidFindThreat is 1, % Potential expected evaluable error here
         append([], [(XStep, YStep)], FoundThreat)
         ;

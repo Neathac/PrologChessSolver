@@ -30,6 +30,7 @@ RNBQKBNRPPPPPPPPB-------------------------------pppppppprnbqkbnr // White bishop
 RNBQKBNRPPPPPPPPp-------------------------------pppppppprnbqkbnr // Black pawn in front of white pawns
 RNBQKBNRPPPPPPPPk-------------------------------pppppppprnbq-bnr // Black king in front of white pawns
 RNBQKBNRP-PPPPPPkP------------------------------pppppppprnbq-bnr // Black king exposed to white knight and bishop
+RNBQKBNRP-PPPPPPQ-------------------------------pppppppprnbqkbnr // White queen in front of white pawns
 */
 
 % Validates the input length and number of found kings
