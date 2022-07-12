@@ -22,7 +22,7 @@ findPiece(piece(Color, Piece, _, _), [piece(SomeColor, SomePiece, TestedX, Teste
         OutputX is TestedX,
         OutputY is TestedY
         ;
-        findPiece(piece(Color, Piece, KingX, KingY), Tail, NewX, NewY),
+        findPiece(piece(Color, Piece, _, _), Tail, NewX, NewY),
         OutputX is NewX,
         OutputY is NewY
     ).

@@ -31,6 +31,7 @@ RNBQKBNRPPPPPPPPp-------------------------------pppppppprnbqkbnr // Black pawn i
 RNBQKBNRPPPPPPPPk-------------------------------pppppppprnbq-bnr // Black king in front of white pawns
 RNBQKBNRP-PPPPPPkP------------------------------pppppppprnbq-bnr // Black king exposed to white knight and bishop
 RNBQKBNRP-PPPPPPQ-------------------------------pppppppprnbqkbnr // White queen in front of white pawns
+-NBQ-BNRPPPPPPPPK-------R-------r---------------pppppppprnbqkbnr // White rook blocking check to white king by black rook
 */
 
 % Validates the input length and number of found kings

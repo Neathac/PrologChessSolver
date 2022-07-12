@@ -29,24 +29,24 @@ kingDirs(X) :- X = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)].
 
 % Get legal moves for a given piece. Branch for specific pieces based on type of piece
 getPieceMoves(piece(white, pawn, X, Y), Board, FoundLegalMoves) :-
-    explorePawnTakes([(1, 1), (-1, 1)], white, X, Y, Board, FoundTakes),
+    explorePawnTakes([(1, 1), (1, -1)], white, X, Y, Board, FoundTakes),
     (
         % Pawn can make a double move
         X = 2 ->
-        explorePawnMoves([(0, 1), (0, 2)], white, X, Y, Board, FoundMoves)
+        explorePawnMoves([(1, 0), (2, 0)], white, X, Y, Board, FoundMoves)
         ;
-        explorePawnMoves([(0, 1)], white, X, Y, Board, FoundMoves)
+        explorePawnMoves([(1, 0)], white, X, Y, Board, FoundMoves)
     ),
     append(FoundTakes, FoundMoves, FoundLegalMoves).
 
 getPieceMoves(piece(black, pawn, X, Y), Board, FoundLegalMoves) :-
-    explorePawnTakes([(1, -1), (-1, -1)], black, X, Y, Board, FoundTakes),
+    explorePawnTakes([(-1, -1), (-1, 1)], black, X, Y, Board, FoundTakes),
     (
         % Pawn can make a double move
         X = 7 ->
-        explorePawnMoves([(0, -1), (0, -2)], black, X, Y, Board, FoundMoves)
+        explorePawnMoves([(-1, 0), (-2, 0)], black, X, Y, Board, FoundMoves)
         ;
-        explorePawnMoves([(0, -1)], black, X, Y, Board, FoundMoves)
+        explorePawnMoves([(-1, 0)], black, X, Y, Board, FoundMoves)
     ),
     append(FoundTakes, FoundMoves, FoundLegalMoves).
     
@@ -57,7 +57,6 @@ getPieceMoves(piece(Color, rook, X, Y), Board, FoundLegalMoves) :-
 getPieceMoves(piece(Color, queen, X, Y), Board, FoundLegalMoves) :- 
     queenDirs(Dirs),
     exploreContinuousDirs(Dirs, Board, X, Y, Color, LegalMoves),
-    writeln(LegalMoves),
     append(LegalMoves, [], FoundLegalMoves).
 getPieceMoves(piece(Color, bishop, X, Y), Board, FoundLegalMoves) :- 
     bishopDirs(Dirs),
@@ -67,15 +66,16 @@ getPieceMoves(piece(Color, knight, X, Y), Board, FoundLegalMoves) :-
     knightDirs(KnightDirs),
     exploreKnightMoves(KnightDirs, Color, X, Y, Board, LegalMoves),
     append(LegalMoves, [], FoundLegalMoves).
-% getPieceMoves(piece(Color, king, X, Y), Board, FoundLegalMoves).
+getPieceMoves(piece(Color, king, X, Y), Board, FoundLegalMoves) :-
+    kingDirs(Dirs),
+    exploreKnightMoves(Dirs, Color, X, Y, Board, LegalMoves),
+    append(LegalMoves, [], FoundLegalMoves).
 % (+Directions in which the piece moves, +State of the board, +Piece row, +Piece column, +PieceColor, -List of possible moves)
 % Used for the queen, the bishop, and the rook, as there is no set distance the piece has or can travel as long as unobstructed
 exploreContinuousDirs([], _, _, _, _, []).
 exploreContinuousDirs([HeadDir|TailDirs], Board, X, Y, Color, MoveList) :-
     exploreContinuousDirection(HeadDir, Board, X, Y, Color, ListOfMoves),
     exploreContinuousDirs(TailDirs, Board, X, Y, Color, NewMoveList),
-    writeln([HeadDir|TailDirs]),
-    writeln(ListOfMoves),
     append(ListOfMoves, NewMoveList, MoveList).
 
 % (+Directional coordinates, +Board state, +Previous X coordinate, +Previous Y coordinate, +Color of piece being moved, -Legal moves )
@@ -83,10 +83,10 @@ exploreContinuousDirection((XDir, YDir), Board, PrevX, PrevY, Color, FoundMoves)
     Xmove is XDir + PrevX,
     Ymove is YDir + PrevY,
     ( 
-        isSquareFriendly(Board, Ymove, Xmove, Color) ->
+        isSquareFriendly(Board, Xmove, Ymove, Color) ->
         append([], [], FoundMoves)
         ;
-        isSquareHostile(Board, Ymove, Xmove, Color) ->
+        isSquareHostile(Board, Xmove, Ymove, Color) ->
         append([], [(Xmove, Ymove)], FoundMoves) 
         ;
         withinBounds(Xmove, Ymove) ->

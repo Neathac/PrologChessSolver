@@ -10,8 +10,8 @@ start :-
     read_line_to_codes(user_input,Cs),
     validate_input(Cs),
     constructBoard(Cs, _, _, Board, WhitePieces, BlackPieces),
-    generateMoves(Board, white, WhitePieces, LegalMoves),
-%    getPieceMoves(piece(white, queen, 3, 1), Board, LegalMoves),
+    generateMoves(Board, WhitePieces, LegalMoves),
+%    getPieceMoves(piece(white, pawn, 2, 2), Board, LegalMoves),
     writeln(LegalMoves). 
 
 % (+List of character codes, ?X coordinate, ?Y coordinate, -Board array of piece data structures)
@@ -31,38 +31,34 @@ constructBoard([Head|Tail], X, Y, ExpandedList, WhitePieces, BlackPieces) :-
     ),
     atom_codes(Character, [Head]),
     boardLetter(Character, Piece, Color),
-    append([piece(Color, Piece, X, Y)], List, ExpandedList),
+    append([piece(Color, Piece, Y, X)], List, ExpandedList),
     (
         Color = white ->
-        append(NewWhitePieces, [piece(Color, Piece, X, Y)], WhitePieces),
+        append(NewWhitePieces, [piece(Color, Piece, Y, X)], WhitePieces),
         append(NewBlackPieces, [], BlackPieces)
         ;
         Color = black ->
-        append(NewBlackPieces, [piece(Color, Piece, X, Y)], BlackPieces),
+        append(NewBlackPieces, [piece(Color, Piece, Y, X)], BlackPieces),
         append(NewWhitePieces, [], WhitePieces)
         ;
         append(NewWhitePieces, [], WhitePieces),
         append(NewBlackPieces, [], BlackPieces)
     ).
 
-generateMoves(_, _, [], []).
-generateMoves(Board, Color, [Piece|Pieces], LegalMoves) :-
-    writeln('Generating'),
-    writeln(Pieces),
-    generateMoves(Board, Color, Pieces, NewLegalMoves),
+generateMoves(_, [], []).
+generateMoves(Board, [Piece|Pieces], LegalMoves) :-
+    generateMoves(Board, Pieces, NewLegalMoves),
     getPieceMoves(Piece, Board, PossibleMoves),
-    writeln(Piece),
-    validateMoves(Board, Color, Piece, PossibleMoves, ValidMoves),
-    writeln(ValidMoves),
+    validateMoves(Board, Piece, PossibleMoves, ValidMoves),
     append(NewLegalMoves, [(Piece,ValidMoves)], LegalMoves).
 
-validateMoves(_, _, _, [], []).
-validateMoves(Board, Color, piece(Color, Kind, X, Y), [(MoveX, MoveY)| Moves], ValidMoves) :-
-    validateMoves(Board, Color, Piece, Moves, NewValidMoves),
+validateMoves(_, _, [], []).
+validateMoves(Board, piece(Color, Kind, X, Y), [(MoveX, MoveY)| Moves], ValidMoves) :-
+    validateMoves(Board, piece(Color, Kind, X, Y), Moves, NewValidMoves),
     replaceP(piece(_, _, X, Y), piece(neutral, empty, X, Y), Board, NewBoard),
     replaceP(piece(_, _, MoveX, MoveY), piece(Color, Kind, MoveX, MoveY), NewBoard, FinalPosition),
     findPiece(piece(Color, king, _, _), FinalPosition, KingX, KingY),
-    exploreKingThreats(KingX, KingY, FinalPosition, Color, FoundThreats, FoundThreatNumber),
+    exploreKingThreats(KingX, KingY, FinalPosition, Color, _, FoundThreatNumber),
     (
         FoundThreatNumber > 0 ->
         append([], NewValidMoves, ValidMoves)
