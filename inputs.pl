@@ -18,6 +18,8 @@ instructions(_) :-
     write('The input has to contain both a balck and a white king. Only one of each.'),
     write('Please input the position as a string of letters uninterrupted by spaces or other characters undefined above: \n').
 
+askForTurn(_) :-
+    writeln('Enter \'W\' if white plays next, enter \'B\' otherwise:').
 /*
 Test input:
 -------- // 8 Spaces
@@ -32,6 +34,7 @@ RNBQKBNRPPPPPPPPk-------------------------------pppppppprnbq-bnr // Black king i
 RNBQKBNRP-PPPPPPkP------------------------------pppppppprnbq-bnr // Black king exposed to white knight and bishop
 RNBQKBNRP-PPPPPPQ-------------------------------pppppppprnbqkbnr // White queen in front of white pawns
 -NBQ-BNRPPPPPPPPK-------R-------r---------------pppppppprnbqkbnr // White rook blocking check to white king by black rook
+k---------R-----K-----R----------------------------------------- // Mate in one for white
 */
 
 % Validates the input length and number of found kings

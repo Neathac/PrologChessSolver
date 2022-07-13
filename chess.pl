@@ -3,6 +3,7 @@
 :- [inputs].
 :- [rules].
 :- [utils].
+:- [evaluator].
 
 % Program entry point
 start :- 
@@ -10,9 +11,26 @@ start :-
     read_line_to_codes(user_input,Cs),
     validate_input(Cs),
     constructBoard(Cs, _, _, Board, WhitePieces, BlackPieces),
-    generateMoves(Board, WhitePieces, LegalMoves),
-%    getPieceMoves(piece(white, pawn, 2, 2), Board, LegalMoves),
-    writeln(LegalMoves). 
+    askForTurn(_),
+    getPieceMoves(piece(black, king, 1, 1), Board, Moves),
+    validateMoves(Board, piece(black, king, 1, 1), Moves, LegalMoves),
+    writeln(LegalMoves),
+    read_line_to_codes(user_input,Code),
+    atom_codes(Character, Code),
+    (
+        Character = 'W' ->
+        generateMoves(Board, WhitePieces, LegalMoves)
+        ;
+        generateMoves(Board, BlackPieces, LegalMoves)
+    ),
+    evalAllMoves(LegalMoves, Board, WhitePieces, BlackPieces, Move, Score),
+    (
+        Score > 0 ->
+        writeln('Best found move:'),
+        writeln(Move)
+        ;
+        writeln('No legal moves found!')    
+    ). 
 
 % (+List of character codes, ?X coordinate, ?Y coordinate, -Board array of piece data structures)
 constructBoard([], 1, 9, [], [], []).
@@ -55,13 +73,26 @@ generateMoves(Board, [Piece|Pieces], LegalMoves) :-
 validateMoves(_, _, [], []).
 validateMoves(Board, piece(Color, Kind, X, Y), [(MoveX, MoveY)| Moves], ValidMoves) :-
     validateMoves(Board, piece(Color, Kind, X, Y), Moves, NewValidMoves),
+    writeln((MoveX, MoveY)),
     replaceP(piece(_, _, X, Y), piece(neutral, empty, X, Y), Board, NewBoard),
     replaceP(piece(_, _, MoveX, MoveY), piece(Color, Kind, MoveX, MoveY), NewBoard, FinalPosition),
     findPiece(piece(Color, king, _, _), FinalPosition, KingX, KingY),
-    exploreKingThreats(KingX, KingY, FinalPosition, Color, _, FoundThreatNumber),
+    writeln(FinalPosition),
+    exploreKingThreats(KingX, KingY, FinalPosition, Color, ThreatList, FoundThreatNumber),
     (
         FoundThreatNumber > 0 ->
         append([], NewValidMoves, ValidMoves)
         ;
         append([(MoveX, MoveY)], NewValidMoves, ValidMoves)    
     ).
+
+countMoves([], 0).
+countMoves([Head | Tail], MoveCount) :-
+    countMoves(Tail, NewMoveCount),
+    countPieceMoves(Head, PieceMoveCount),
+    MoveCount is NewMoveCount + PieceMoveCount.
+
+countPieceMoves((piece(_, _, _, _), []), 0).
+countPieceMoves((piece(_, _, _, _), [Head|Tail]), MoveCount) :-
+    countPieceMoves((piece(_, _, _, _), Tail), NewMoveCount),
+    MoveCount is NewMoveCount + 1.
