@@ -200,22 +200,27 @@ pawnThreats(Board, X, Y, white, FoundThreats, IsKingThreatened) :-
     append(LeftThreat, RightThreat, FoundThreats).
 
 % Black king checked by white pawns
-pawnThreats(Board, X, Y, black, FoundThreats) :-
+pawnThreats(Board, X, Y, black, FoundThreats, IsKingThreatened) :-
     ThreatRow is Y - 1,
     RightColumn is X + 1,
     LeftColumn is X - 1,
     (
         member(piece(white, pawn, ThreatRow, RightColumn), Board) ->
+        IsRightThreat is 1,
         append([], [(ThreatRow, RightColumn)], RightThreat)
         ;
+        IsRightThreat is 0,
         append([], [], RightThreat)    
     ),
     (
         member(piece(white, pawn, ThreatRow, LeftColumn), Board) ->
+        IsLeftThreat is 1,
         append([], [(ThreatRow, LeftColumn)], LeftThreat)
         ;
+        IsLeftThreat is 0,
         append([], [], LeftThreat)    
     ),
+    IsKingThreatened is IsLeftThreat + IsRightThreat,
     append(LeftThreat, RightThreat, FoundThreats).
 
 % Checks by the enemy king

@@ -1,6 +1,7 @@
 
 evalMove(piece(white, Piece, X, Y), [MoveX, MoveY], Board, WhitePieces, BlackPieces, Score) :-
-    replaceP(piece(white, Piece, X, Y), piece(neutral, empty, X, Y), Board, NewBoard),
+    replaceP(piece(white, Piece, X, Y), piece(neutral, empty, X, Y), Board, MidBoard),
+    replaceP(piece(_, _, MoveX, MoveY), piece(white, Piece, MoveX, MoveY), MidBoard, NewBoard),
     replaceP(piece(white, Piece, X, Y), piece(white, Piece, MoveX, MoveY), WhitePieces, NewWhitePieces),
     (
         member(piece(black, _, MoveX, MoveY), BlackPieces) ->
@@ -8,21 +9,21 @@ evalMove(piece(white, Piece, X, Y), [MoveX, MoveY], Board, WhitePieces, BlackPie
         ;
         append(BlackPieces, [], NewBlackPieces)
     ),
-    trace,
     generateMoves(NewBoard, NewBlackPieces, NewMoves),
     countMoves(NewMoves, MoveCount),
     findPiece(piece(black, king, _, _), NewBoard, KingX, KingY),
     exploreKingThreats(KingX, KingY, NewBoard, black, _, FoundThreatNumber),
     (
-        MoveCount = 0 ->
+        MoveCount = 0, FoundThreatNumber > 0 ->
         Score is 999999
         ;
         Score is 1
     ).
 
 evalMove(piece(black, Piece, X, Y), [MoveX, MoveY], Board, WhitePieces, BlackPieces, Score) :-
-    replaceP(piece(black, Piece, X, Y), piece(neutral, empty, X, Y), Board, NewBoard),
-    replaceP(piece(black, Piece, X, Y), piece(white, Piece, MoveX, MoveY), BlackPieces, NewBlackPieces),
+    replaceP(piece(black, Piece, X, Y), piece(neutral, empty, X, Y), Board, MidBoard),
+    replaceP(piece(_, _, MoveX, MoveY), piece(black, Piece, MoveX, MoveY), MidBoard, NewBoard),
+    replaceP(piece(black, Piece, X, Y), piece(black, Piece, MoveX, MoveY), BlackPieces, NewBlackPieces),
     (
         member(piece(white, _, MoveX, MoveY), WhitePieces) ->
         delete(piece(white, _, MoveX, MoveY), WhitePieces, NewWhitePieces)

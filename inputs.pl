@@ -35,6 +35,7 @@ RNBQKBNRP-PPPPPPkP------------------------------pppppppprnbq-bnr // Black king e
 RNBQKBNRP-PPPPPPQ-------------------------------pppppppprnbqkbnr // White queen in front of white pawns
 -NBQ-BNRPPPPPPPPK-------R-------r---------------pppppppprnbqkbnr // White rook blocking check to white king by black rook
 k---------R-----K-----R----------------------------------------- // Mate in one for white
+K---------r-----k-----r----------------------------------------- // Mate in one for black
 */
 
 % Validates the input length and number of found kings

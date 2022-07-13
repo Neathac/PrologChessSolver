@@ -12,9 +12,6 @@ start :-
     validate_input(Cs),
     constructBoard(Cs, _, _, Board, WhitePieces, BlackPieces),
     askForTurn(_),
-    getPieceMoves(piece(black, king, 1, 1), Board, Moves),
-    validateMoves(Board, piece(black, king, 1, 1), Moves, LegalMoves),
-    writeln(LegalMoves),
     read_line_to_codes(user_input,Code),
     atom_codes(Character, Code),
     (
@@ -73,11 +70,9 @@ generateMoves(Board, [Piece|Pieces], LegalMoves) :-
 validateMoves(_, _, [], []).
 validateMoves(Board, piece(Color, Kind, X, Y), [(MoveX, MoveY)| Moves], ValidMoves) :-
     validateMoves(Board, piece(Color, Kind, X, Y), Moves, NewValidMoves),
-    writeln((MoveX, MoveY)),
     replaceP(piece(_, _, X, Y), piece(neutral, empty, X, Y), Board, NewBoard),
     replaceP(piece(_, _, MoveX, MoveY), piece(Color, Kind, MoveX, MoveY), NewBoard, FinalPosition),
     findPiece(piece(Color, king, _, _), FinalPosition, KingX, KingY),
-    writeln(FinalPosition),
     exploreKingThreats(KingX, KingY, FinalPosition, Color, ThreatList, FoundThreatNumber),
     (
         FoundThreatNumber > 0 ->
