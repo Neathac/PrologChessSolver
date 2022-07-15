@@ -1,5 +1,6 @@
 % This file takes care of inputs and validates formats
 
+% Print instructions for the user
 instructions(_) :- 
     write('Usage of the chess solver utility: \n'),
     write('The input will first ask for a position, followed up by whose turn it is and desired move search depth. \n'),
@@ -73,6 +74,8 @@ validate_position_counts([Head|Tail], N, WK, BK, Invalid) :- validate_position_c
         Invalid is Invalid1 + 1
     ).
 
+% (+Char codes of input)
+% Ensures the input format and amount of kings is correct
 validate_input(Codes) :-
     validate_position_counts(Codes, Length, WK, BK, Invalid),
     (
