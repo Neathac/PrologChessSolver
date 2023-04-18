@@ -1,5 +1,10 @@
 % This file takes care of inputs and validates formats
 
+:- [inputs].
+:- [rules].
+:- [utils].
+:- [evaluator].
+
 % Print instructions for the user
 instructions(_) :- 
     write('Usage of the chess solver utility: \n'),
