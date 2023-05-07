@@ -1,9 +1,9 @@
-
+/*
 :- [inputs].
 :- [rules].
 :- [utils].
 :- [evaluator].
-
+*/
 % (+A single piece, +Move to evaluate, +State of board, +List of white pieces, +List of BlackPieces, -Score of tried move)
 % Move evaluation for white pieces
 evalMove(piece(white, Piece, X, Y), [MoveX, MoveY], Board, WhitePieces, BlackPieces, Score) :-

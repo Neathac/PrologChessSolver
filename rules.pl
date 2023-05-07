@@ -1,10 +1,10 @@
 % Checks legality of moves
-
+/*
 :- [inputs].
 :- [rules].
 :- [utils].
 :- [evaluator].
-
+*/
 % List of viable pieces used for move validity
 blackPieces(X) :- X = ['p','r','n','b','q','k'].
 whitePieces(X) :- X = ['P','R','N','B','Q','K'].

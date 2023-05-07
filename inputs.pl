@@ -1,10 +1,10 @@
 % This file takes care of inputs and validates formats
-
+/*
 :- [inputs].
 :- [rules].
 :- [utils].
 :- [evaluator].
-
+*/
 % Print instructions for the user
 instructions(_) :- 
     write('Usage of the chess solver utility: \n'),
@@ -21,7 +21,7 @@ instructions(_) :-
     write(' The character \' q/Q \' represents a queen. \n'),
     write(' The character \' k/K \' represents a king. \n'),
     write('---------- \n'),
-    write('The input has to contain both a balck and a white king. Only one of each.'),
+    write('The input has to contain both a balck and a white king. Only one of each. \n'),
     write('Please input the position as a string of letters uninterrupted by spaces or other characters undefined above: \n').
 
 askForTurn(_) :-
@@ -87,6 +87,37 @@ validate_input(Codes) :-
         Length = 64, WK = 1, BK = 1, Invalid = 0 ->
         write('Semantically correct input. \n')
         ;
-        write('Incorrect length or incorrect number of kings. \n'),
+        (
+            Length \= 64 ->
+            write('ERROR: The desired input needs to be 64 characters long. Detected input had '),
+            write(Length),
+            write(' characters. \n')
+            ;
+            true
+        ),
+        (
+            BK \= 1 ->
+            write('ERROR: There needs to be exactly 1 black king. Detected input had '),
+            write(BK),
+            write(' black kings. \n')
+            ;
+            true
+        ),
+        (
+            WK \= 1 ->
+            write('ERROR: There needs to be exactly 1 white king. Detected input had '),
+            write(WK),
+            write(' white kings. \n')
+            ;
+            true
+        ),
+        (
+            Invalid \= 0 ->
+            write('ERROR: Input can only contain characters specified by instructions. Detected input had '),
+            write(Invalid),
+            write(' invalid characters. \n')
+            ;
+            true
+        ),
         fail
     ).
