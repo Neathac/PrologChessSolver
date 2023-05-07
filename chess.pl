@@ -27,7 +27,8 @@ start :-
         writeln(Move)
         ;
         writeln('No legal moves found!')    
-    ). 
+    ),
+    halt. 
 
 % (+List of character codes, ?X coordinate, ?Y coordinate, -Board array of piece data structures)
 constructBoard([], 1, 9, [], [], []).
