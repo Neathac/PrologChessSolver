@@ -33,6 +33,16 @@ __k---------R-----K-----R-----------------------------------------__ _// Mate in
 
 __K---------r-----k-----r-----------------------------------------__ _// Mate in one for black_
 
+__R---K--------rr----------------------------------R-----------k--__ _// Mate in one for white by Rook_
+
+__R--QK-NR-BPP--B--PN-PP-PP-----P---------bpnbpn--p-p--pppr--q-rk-__ _// Mate in one for black by Bishop_
+
+__-K-R----PPP------B---P---p----------p--p-------Q-q-P--b----r-k--__ _// Mate in one for white by Queen_
+
+__k-------p-K-----------------------N-----------------------------__ _// Mate in one for white by knight_
+
+__----------------------P---n-------------k--------r------K-------__ _// Mate in one for black by Knight_
+
 ---
 ---
 # Tecnical documentation
@@ -49,51 +59,43 @@ It first instructs the user using _instructions(\_)_ and processes the user inpu
 
 Input is then validated using _validate\_input(Cs)_, which ensures the correct format and that the position is legal.
 
-The input is then processed using _constructBoard(Cs, \_, \_, Board, WhitePieces, BlackPieces)_, which extracts piece kinds and positions.
+The input is then processed using _constructPieces(Cs, _, _, Position)_, which extracts piece kinds and positions. Its output takes the format piecesPosition(pieces(WhitePawns,WhiteRooks,WhiteKnights,WhiteBishops,WhiteQueens,WhiteKing), pieces(BlackPawns,BlackRooks,BlackKnights,BlackBishops,BlackQueens,BlackKing))
 
 _askForTurn(\_)_ determines if black or white plays next, followed by _read\_line\_to\_codes(user\_input,Code)_ to extract the user answer. It is then decoded and processed by _atom\_codes(Character, Code)_ and _generateMoves(Board, White|BlackPieces, LegalMoves)_, which outputs a set of possible moves.
 
-_evalAllMoves(LegalMoves, Board, WhitePieces, BlackPieces, Move, Score)_ then determines which of the possible moves is best.
+_play(Position,Color)_ then determines which of the possible moves is best.
 
 ---
 
-**constructBoard([], 1, 9, [], [], []).**
+**constructPieces([], 1, 9, piecesPosition(pieces([],[],[],[],[],[]), pieces([],[],[],[],[],[]))).**
 
-**constructBoard([Head|Tail], X, Y, ExpandedList, WhitePieces, BlackPieces) :-**
+**constructPieces([Head|Tail], X, Y, piecesPosition(WhitePieces, BlackPieces)) :-**
 
-A recursive function outputing a list of pieces or empty fields associated with coordinates, as well as creating two separate lists of only pieces for each color based on the user-provided input.
-
----
-
-**generateMoves(_, [], []).**
-
-**generateMoves(Board, [Piece|Pieces], LegalMoves) :-**
-
-Generates a list of legal moves for each piece in the provided list.
+A recursive function outputing a list of pieces associated with coordinates, as well as creating two separate lists of only pieces for each color based on the user-provided input.
 
 ---
 
-**validateMoves(_, _, [], []).**
+**play(Position,Color) :-**
 
-**validateMoves(Board, piece(Color, Kind, X, Y), [(MoveX, MoveY)| Moves], ValidMoves) :-**
-
-Once all legal moves for each piece are generated, removes any move that might result in an overall illegal position, even though the move itself is possible by the piece. Example might be a discovered check on own king if the move were performed.
+Simply calls the legal moves generation and formats the output depending on the outcome.
 
 ---
 
-**countMoves([], 0).**
+**generate(move(From, To),Color,piecesPosition(WhitePieces,BlackPieces),NewPosition):-**
 
-**countMoves([Head | Tail], MoveCount) :-**
-
-Calculates how many moves are in an array.
+Exploiting backtracking, generates all legal moves. It then tries the move and looks two turns ahead to check for checkmate.
 
 ---
 
-**countPieceMoves((piece(_, _, _, _), []), 0).**
+**changePiece(piecesPosition(WhitePieces, BlackPieces), Color, From, To, New) :-**
 
-**countPieceMoves((piece(_, _, _, _), [Head|Tail]), MoveCount) :-**
+Performs a given move. It first updates friendly pieces and then tries if the move was a take of an enemy piece. Outputs a valid position after the move was performed.
 
-Calculates how many moves are associated with the piece.
+---
+
+**killPiece(Field, Pieces, Result):-**
+
+A helper predicate called by changePiece, taking care of takes.
 
 ---
 ---
@@ -160,96 +162,56 @@ Iterates over all pieces and finds which has the best move available.
 
 ---
 
-**getPieceMoves(piece(Color, somePiece, X, Y), Board, FoundLegalMoves) :-**
+**whitePieces(X)**
+**blackPieces(X)**
+**emptySpace(X)**
+**boardLetter(character, type, color)**
+**pieceMoves(Type, Direction)**
 
-Finds all legal moves for a piece
-
----
-
-**exploreContinuousDirs([], _, _, _, _, []).**
-
-**exploreContinuousDirs([HeadDir|TailDirs], Board, X, Y, Color, MoveList) :-**
-
-Recursively explores each direction up to an obstacle - A piece / edge of the board.
+There is nothing interesting about these predicates, they simply enumerate possibilities used for generation of board or possible piece directional moves
 
 ---
 
-**exploreContinuousDirection((XDir, YDir), Board, PrevX, PrevY, Color, FoundMoves) :-**
+**legalMoves(Color, Position, Pieces, move(From,To)):-**
 
-Implements the exploration of a single continuous direction provided to it. Utilized by _exploreContinuousDirs_
-
----
-
-**explorePawnTakes([], _, _, _, _, []).**
-
-**explorePawnTakes([(X,Y)|Tail],Color, CurrX, CurrY, Board, FoundMoves) :-**
-
-Finds all legal pawn moves.
+A version of this predicate exists for each piece. It finds current placement of a piece of a certain kind on the board, finds its possible directional moves, then attempts them and returns successful attempts. This serves to generate all possible legal moves.
 
 ---
 
-**explorePawnMoves([], _, _, _, _, []).**
+**exploreContinuousDirection(Field,Direction,Next,Color,Position):-**
 
-**explorePawnMoves([(X,Y)|Tail], Color, CurrX, CurrY, Board, FoundMoves) :-**
-
-Tests if the pawn is able to take an enemy piece and should thus be included in legal moves.
+Implements the exploration of a single continuous direction provided to it. Tries to step onto one or more squares. Bouth outputs straight away and backtracks if movement is longer.
 
 ---
 
-**exploreKnightMoves([], _, _, _, _, []).**
+**pawnMove((FromX, FromY),Color,Position,To):-**
 
-**exploreKnightMoves([(X, Y)|Tail], Color, CurrX, CurrY, Board, FoundMoves) :-**
-
-Tests all moves possible for a knight.
+Finds all legal pawn moves. Essentially the same as pieceMoves, but pawns need to be distinguished by color.
 
 ---
 
-**exploreKingThreats(X, Y, Board, Color, Threats, IsKingThreatened) :-**
+**exploreSingleSquare((FieldX, FieldY), (DirX, DirY), NextTuple, Color, PiecesPosition) :-**
 
-Checks if the position exposes a king of the corresponding color to a Check.
-
----
-
-**knightThreats([], _, _, _, _, [], 0).**
-
-**knightThreats([(X, Y)| Tail], CurrX, CurrY, Board, Color, FoundThreats, IsKingThreatened) :-**
-
-A special case of exploring King threats for a knight, who can attack from a unique angle.
+Does exactly as the name suggests. Attempts to step on a square if legal.
 
 ---
 
-**continuousThreats([], _, _, _, _, [], 0, _).**
+**continuousMove(From,Color,Type,Position,To):-**
 
-**continuousThreats([HeadDir|Tail], X, Y, Board, Color, FoundThreats, IsKingThreatened, Piece) :-**
-
-Finds king threats in a straight line.
+Utilizes the direction in a move that possibly steps over multiple squares, meaning rooks, queens, and bishops.
 
 ---
 
-**pawnThreats(Board, X, Y, white|black, FoundThreats, IsKingThreatened) :-**
+**singleMove(From,Color,Type,Position,To):-**
 
-Finds if king can be threatened by pawns.
-
----
-
-**kingThreats([], _, _, _, _, [], 0).**
-
-**kingThreats([(XDir, YDir)| Tail], Board, Color, X, Y, FoundThreats, FoundNumberOfThreats) :-**
-
-Counts the amount of threats to the king.
-
----
-
-**continuousDirectionThreat((XDir, YDir), X, Y, Board, Color, FoundThreat, DidFindThreat, Piece) :-**
-
-Finds threats in one specific continuous direction.
+Utilizes directional movement, but only once, meaning knights and kings.
 
 ---
 ---
 
 ## utils.pl
 
-A collection of utility functions mostly used in conditions or to ease work with lists
+A collection of utility functions mostly used in conditions or to ease work with lists. They are all explained in closer detail via comments in implementation.
 
 ---
 
@@ -259,6 +221,10 @@ A collection of utility functions mostly used in conditions or to ease work with
 
 ---
 
+**checkFriendly(Field, Color, piecesPosition(WhitePieces, BlackPieces)) :-**
+
+**checkHostile(Field, Color, piecesPosition(WhitePieces, BlackPieces)) :-**
+
 **isSquareFriendly(Board, X, Y, Color) :-**
 
 **isSquareHostile(Board, X, Y, black) :-**
@@ -267,9 +233,13 @@ A collection of utility functions mostly used in conditions or to ease work with
 
 ---
 
-**findPiece(_, [], -1, -1).**
+**changePieces(king, Replacement, pieces(Pawns,Rooks,Knights,Bishops,Queens,Kings), pieces(Pawns,Rooks,Knights,Bishops,Queens,Replacement)).**
 
-**findPiece(piece(Color, Piece, _, _), [piece(SomeColor, SomePiece, TestedX, TestedY) | Tail], OutputX, OutputY) :-**
+**replacePiece(Field, NewField, pieces(_,_,_,_,_,_),Type, Result) :- member(Field, _), replace(Field, NewField, _, Result).**
+
+**removePiece(Field, pieces(_,_,_,_,_,_),Type, Result) :- remove(Field, _, Result).**
+
+**isSquareTaken(Field, Color, Position) :-**
 
 ---
 
@@ -277,8 +247,6 @@ A collection of utility functions mostly used in conditions or to ease work with
 
 ---
 
-**replaceP(_, _, [], []).**
+**remove(X,[X|New],New):-**
 
-**replaceP(O, R, [O|T], [R|T2]) :-**
-
-**replaceP(O, R, [H|T], [H|T2]) :-**
+**replace(X, Y,[X|New],[Y|New]):-**

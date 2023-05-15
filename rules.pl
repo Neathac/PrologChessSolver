@@ -1,10 +1,8 @@
-% Checks legality of moves
-/*
-:- [inputs].
-:- [rules].
-:- [utils].
-:- [evaluator].
-*/
+% *******************************************
+% predecates for generating new moves
+% *******************************************
+%
+
 % List of viable pieces used for move validity
 blackPieces(X) :- X = ['p','r','n','b','q','k'].
 whitePieces(X) :- X = ['P','R','N','B','Q','K'].
@@ -25,237 +23,146 @@ boardLetter('B', bishop, white).
 boardLetter('q', queen, black).
 boardLetter('Q', queen, white).
 
-% Valid directional moves for individual pieces
-rookDirs(X) :- X = [(0,1),(0,-1),(1,0),(-1,0)].
-knightDirs(X) :- X = [(2,1),(2,-1),(-2,1),(-2,-1),(-1,2),(-1,-2),(1,-2),(1,2)].
-bishopDirs(X) :- X = [(-1,-1),(-1,1),(1,-1),(1,1)].
-queenDirs(X) :- X = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)].
-kingDirs(X) :- X = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)].
+% Tries to step onto a square
+% (+From - Where to find the pawn, +Direction - Direction in which to move, -Next - The explored output square, +Color - Who is to move, +Position - The board situation)
+exploreSingleSquare((FieldX, FieldY), (DirX, DirY), NextTuple, Color, PiecesPosition) :-
+	NextX is FieldX + DirX,
+	NextY is FieldY + DirY,
+	NextTuple = (NextX, NextY),
+	withinBounds(NextTuple),
+	not(checkFriendly(NextTuple, Color, PiecesPosition)).
 
-% Get legal moves for a given piece. Branch for specific pieces based on type of piece
-getPieceMoves(piece(white, pawn, X, Y), Board, FoundLegalMoves) :-
-    explorePawnTakes([(1, 1), (1, -1)], white, X, Y, Board, FoundTakes),
-    (
-        % Pawn can make a double move
-        X = 2 ->
-        explorePawnMoves([(1, 0), (2, 0)], white, X, Y, Board, FoundMoves)
-        ;
-        explorePawnMoves([(1, 0)], white, X, Y, Board, FoundMoves)
-    ),
-    append(FoundTakes, FoundMoves, FoundLegalMoves).
+% Tries to step onto one or more squares. Bouth outputs straight away and backtracks if movement is longer
+% (+From - Where to find the pawn, +Direction - Direction in which to move, -Next - The explored output square, +Color - Who is to move, +Position - The board situation)
+exploreContinuousDirection(Field,Direction,Next,Color,Position):-
+	exploreSingleSquare(Field,Direction,Next,Color,Position).
+	
+exploreContinuousDirection(Field, Direction, Next, Color, PiecesPosition) :-
+	exploreSingleSquare(Field, Direction, FieldNew, Color, PiecesPosition),
+	not(checkHostile(FieldNew, Color, PiecesPosition)),
+	exploreContinuousDirection(FieldNew, Direction, Next, Color, PiecesPosition).
 
-getPieceMoves(piece(black, pawn, X, Y), Board, FoundLegalMoves) :-
-    explorePawnTakes([(-1, -1), (-1, 1)], black, X, Y, Board, FoundTakes),
-    (
-        % Pawn can make a double move
-        X = 7 ->
-        explorePawnMoves([(-1, 0), (-2, 0)], black, X, Y, Board, FoundMoves)
-        ;
-        explorePawnMoves([(-1, 0)], black, X, Y, Board, FoundMoves)
-    ),
-    append(FoundTakes, FoundMoves, FoundLegalMoves).
-    
-getPieceMoves(piece(Color, rook, X, Y), Board, FoundLegalMoves) :-
-    rookDirs(Dirs),
-    exploreContinuousDirs(Dirs, Board, X, Y, Color, LegalMoves),
-    append(LegalMoves, [], FoundLegalMoves).
-getPieceMoves(piece(Color, queen, X, Y), Board, FoundLegalMoves) :- 
-    queenDirs(Dirs),
-    exploreContinuousDirs(Dirs, Board, X, Y, Color, LegalMoves),
-    append(LegalMoves, [], FoundLegalMoves).
-getPieceMoves(piece(Color, bishop, X, Y), Board, FoundLegalMoves) :- 
-    bishopDirs(Dirs),
-    exploreContinuousDirs(Dirs, Board, X, Y, Color, LegalMoves),
-    append(LegalMoves, [], FoundLegalMoves).
-getPieceMoves(piece(Color, knight, X, Y), Board, FoundLegalMoves) :-
-    knightDirs(KnightDirs),
-    exploreKnightMoves(KnightDirs, Color, X, Y, Board, LegalMoves),
-    append(LegalMoves, [], FoundLegalMoves).
-getPieceMoves(piece(Color, king, X, Y), Board, FoundLegalMoves) :-
-    kingDirs(Dirs),
-    exploreKnightMoves(Dirs, Color, X, Y, Board, LegalMoves),
-    append(LegalMoves, [], FoundLegalMoves).
-% (+Directions in which the piece moves, +State of the board, +Piece row, +Piece column, +PieceColor, -List of possible moves)
-% Used for the queen, the bishop, and the rook, as there is no set distance the piece has or can travel as long as unobstructed
-exploreContinuousDirs([], _, _, _, _, []).
-exploreContinuousDirs([HeadDir|TailDirs], Board, X, Y, Color, MoveList) :-
-    exploreContinuousDirection(HeadDir, Board, X, Y, Color, ListOfMoves),
-    exploreContinuousDirs(TailDirs, Board, X, Y, Color, NewMoveList),
-    append(ListOfMoves, NewMoveList, MoveList).
+% Possible directions in which a piece can move
+% (+Type - kind of piece, -Direction - X and Y axis in which to move)
+pieceMoves(rook, (1, 0)).
+pieceMoves(rook, (-1, 0)).
+pieceMoves(rook, (0, 1)).
+pieceMoves(rook, (0, -1)).
 
-% (+Directional coordinates, +Board state, +Previous X coordinate, +Previous Y coordinate, +Color of piece being moved, -Legal moves )
-exploreContinuousDirection((XDir, YDir), Board, PrevX, PrevY, Color, FoundMoves) :-
-    Xmove is XDir + PrevX,
-    Ymove is YDir + PrevY,
-    ( 
-        isSquareFriendly(Board, Xmove, Ymove, Color) ->
-        append([], [], FoundMoves)
-        ;
-        isSquareHostile(Board, Xmove, Ymove, Color) ->
-        append([], [(Xmove, Ymove)], FoundMoves) 
-        ;
-        withinBounds(Xmove, Ymove) ->
-        exploreContinuousDirection((XDir, YDir), Board, Xmove, Ymove, Color, NewFoundMoves),
-        append([(Xmove, Ymove)], NewFoundMoves, FoundMoves)
-        ;
-        append([], [], FoundMoves)
-    ).
+pieceMoves(bishop, (1, -1)).
+pieceMoves(bishop, (-1, 1)).
+pieceMoves(bishop, (1, 1)).
+pieceMoves(bishop, (-1, -1)).
 
-explorePawnTakes([], _, _, _, _, []).
-explorePawnTakes([(X,Y)|Tail],Color, CurrX, CurrY, Board, FoundMoves) :-
-    explorePawnTakes(Tail, Color,  CurrX, CurrY, Board, FoundLegalMoves),
-    TakeX is X + CurrX,
-    TakeY is Y + CurrY,
-    (
-        % No need to check for bounds. Hostility fails if there is no enemy piece on specified coordinates
-        isSquareHostile(Board, TakeX, TakeY, Color) ->
-        append([(TakeX, TakeY)], FoundLegalMoves, FoundMoves)
-        ;
-        append([], FoundLegalMoves, FoundMoves)
-    ).
+pieceMoves(knight, (-2, -1)).
+pieceMoves(knight, (2, -1)).
+pieceMoves(knight, (2, 1)).
+pieceMoves(knight, (-2, 1)).
+pieceMoves(knight, (1, -2)).
+pieceMoves(knight, (-1, -2)).
+pieceMoves(knight, (1, 2)).
+pieceMoves(knight, (-1, 2)).
 
-explorePawnMoves([], _, _, _, _, []).
-explorePawnMoves([(X,Y)|Tail], Color, CurrX, CurrY, Board, FoundMoves) :-
-    explorePawnMoves(Tail, Color, CurrX, CurrY, Board, FoundLegalMoves),
-    MoveX is CurrX + X,
-    MoveY is CurrY + Y,
-    (
-        (isSquareHostile(Board, MoveX, MoveY, Color) ; isSquareFriendly(Board, MoveX, MoveY, Color) ; \+withinBounds(MoveX, MoveY))  ->
-        % The next square not being taken is nice, but the pawn is blocked - Ignore found moves from potential second iteration
-        append([], [], FoundMoves)
-        ;
-        append([(MoveX, MoveY)], FoundLegalMoves, FoundMoves)   
-    ).
+pieceMoves(queen, (1, 0)).
+pieceMoves(queen, (-1, 0)).
+pieceMoves(queen, (0, 1)).
+pieceMoves(queen, (0, -1)).
+pieceMoves(queen, (1, -1)).
+pieceMoves(queen, (-1, 1)).
+pieceMoves(queen, (1, 1)).
+pieceMoves(queen, (-1, -1)).
 
-exploreKnightMoves([], _, _, _, _, []).
-exploreKnightMoves([(X, Y)|Tail], Color, CurrX, CurrY, Board, FoundMoves) :-
-    exploreKnightMoves(Tail, Color, CurrX, CurrY, Board, FoundLegalMoves),
-    XMove is X + CurrX,
-    YMove is Y + CurrY,
-    (
-        \+isSquareFriendly(Board, XMove, YMove, Color), withinBounds(XMove, YMove) ->
-        append(FoundLegalMoves, [(XMove, YMove)], FoundMoves)
-        ;
-        append(FoundLegalMoves, [], FoundMoves)
-    ).
+pieceMoves(king, (1, 0)).
+pieceMoves(king, (-1, 0)).
+pieceMoves(king, (0, 1)).
+pieceMoves(king, (0, -1)).
+pieceMoves(king, (1, -1)).
+pieceMoves(king, (-1, 1)).
+pieceMoves(king, (1, 1)).
+pieceMoves(king, (-1, -1)).
 
-% (+Coordinates of square with king, +State of the board, + Color of the king, - Pieces directly threatening the king
-    % - Pieces that would threaten the king if something moved paired with blockers, - Is the square checked)
-exploreKingThreats(X, Y, Board, Color, Threats, IsKingThreatened) :-
-    knightDirs(KnightDirs),
-    bishopDirs(BishopDirs),
-    rookDirs(RookDirs),
-    kingDirs(KingDirs),
-    knightThreats(KnightDirs ,X, Y, Board, Color, KnightThreats, IsKingThreatenedByKnight),
-    continuousThreats(BishopDirs ,X, Y, Board, Color, DiagonalThreats, IsKingThreatenedDiagonally, bishop),
-    continuousThreats(RookDirs ,X, Y, Board, Color, LineThreats, IsKingThreatenedInLine, rook),
-    kingThreats(KingDirs, Board, Color, X, Y, KingThreats, IsKingThreatenedByKing),
-    pawnThreats(Board, X, Y, Color, PawnThreats, IsKingThreatenedByPawns),
-    IsKingThreatened is IsKingThreatenedByPawns + IsKingThreatenedByKing + IsKingThreatenedInLine + IsKingThreatenedDiagonally + IsKingThreatenedByKnight,
-    append(KnightThreats, DiagonalThreats, MergerList),
-    append(LineThreats, KingThreats, MergerList2),
-    append(MergerList, MergerList2, MergerList3),
-    append(PawnThreats, MergerList3, Threats).
+% Pawns need to be distinguished by color
+% (+From - Where to find the pawn, +Color - Who is to move, +Position - The board situation, -To - Found legal move)
+pawnMove((FromX, FromY),white,Position,To):-
+	ToX is FromX + 1,
+	ToY is FromY - 1,
+	To = (ToX, ToY),
+	checkHostile(To,black,Position).
+pawnMove((FromX, FromY),white,Position,To):-
+	ToX is FromX + 1,
+	ToY is FromY,
+	To = (ToX, ToY),
+	not(isSquareTaken(To, _, Position)).
+pawnMove((FromX, FromY),white,Position,To):-
+	ToX is FromX + 1,
+	ToY is FromY + 1,
+	To = (ToX, ToY),
+	checkHostile(To,white,Position).
+pawnMove((FromX, FromY),white,Position,To):- 
+	FromX = 2,
+	ToX  is  FromX + 2,
+	ToY is FromY,
+	OverX  is  FromX + 1,
+	OverY is FromY,
+	To = (ToX, ToY),
+	not(isSquareTaken((ToX, ToY), white, Position)),
+	not(isSquareTaken((OverX, OverY), white, Position)).
+pawnMove((FromX, FromY),black,Position,To):-
+	ToX is FromX - 1,
+	ToY is FromY + 1,
+	To = (ToX, ToY),
+	checkHostile(To,black,Position).
+pawnMove((FromX, FromY),black,Position,To):-
+	ToX is FromX - 1,
+	ToY is FromY,
+	To = (ToX, ToY),
+	not(isSquareTaken(To, _, Position)).
+pawnMove((FromX, FromY),black,Position,To):-
+	ToX is FromX - 1,
+	ToY is FromY - 1,
+	To = (ToX, ToY),
+	checkHostile(To,black,Position).
+pawnMove((FromX, FromY),black,Position,To):-
+	FromX = 7,
+	ToX  is  FromX - 2,
+	ToY is FromY,
+	OverX  is  FromX - 1,
+	OverY is FromY,
+	To = (ToX, ToY),
+	not(isSquareTaken((ToX, ToY), black, Position)),
+	not(isSquareTaken((OverX, OverY), black, Position)).
 
-% Checks by knights
-knightThreats([], _, _, _, _, [], 0).
-knightThreats([(X, Y)| Tail], CurrX, CurrY, Board, Color, FoundThreats, IsKingThreatened) :-
-    knightThreats(Tail, CurrX, CurrY, Board, Color, NewFoundThreats, NewIsKingThreatened),
-    XMove is X + CurrX,
-    YMove is Y + CurrY,
-    (
-        isSquareHostile(Board, XMove, YMove, Color), member(piece(_, knight, XMove, YMove), Board) ->
-        IsKingThreatened is NewIsKingThreatened + 1,
-        append([(XMove, YMove)], NewFoundThreats, FoundThreats)
-        ;
-        IsKingThreatened is NewIsKingThreatened,
-        append([], NewFoundThreats, FoundThreats)  
-    ).
 
-% Checks by queens, rooks, and bishops
-continuousThreats([], _, _, _, _, [], 0, _).
-continuousThreats([HeadDir|Tail], X, Y, Board, Color, FoundThreats, IsKingThreatened, Piece) :-
-    continuousDirectionThreat(HeadDir, X, Y, Board, Color, FoundThreat, DidFindThreat, Piece),
-    continuousThreats(Tail, X, Y, Board, Color, NewFoundThreats, NewIsKingThreatened, Piece),
-    IsKingThreatened is DidFindThreat + NewIsKingThreatened,
-    append(NewFoundThreats, FoundThreat, FoundThreats).
+% For Rooks, Bishops, and Queens, who can have interrupted sightlines
+% (+From - Where the piece is, +Color - Which player is moving, +Type - type of piece, +Position - Board situation, -To - Move to make)
+continuousMove(From,Color,Type,Position,To):-
+	pieceMoves(Type,Direction),
+	exploreContinuousDirection(From,Direction,To,Color,Position).
 
-% White king checked by black pawns
-pawnThreats(Board, X, Y, white, FoundThreats, IsKingThreatened) :-
-    ThreatRow is X + 1,
-    RightColumn is Y + 1,
-    LeftColumn is Y - 1,
-    (
-        member(piece(black, pawn, ThreatRow, RightColumn), Board) ->
-        IsRightThreat is 1,
-        append([], [(ThreatRow, RightColumn)], RightThreat)
-        ;
-        IsRightThreat is 0,
-        append([], [], RightThreat)    
-    ),
-    (
-        member(piece(black, pawn, ThreatRow, LeftColumn), Board) ->
-        IsLeftThreat is 1,
-        append([], [(ThreatRow, LeftColumn)], LeftThreat)
-        ;
-        IsLeftThreat is 0,
-        append([], [], LeftThreat)    
-    ),
-    IsKingThreatened is IsLeftThreat + IsRightThreat,
-    append(LeftThreat, RightThreat, FoundThreats).
+% For Knights and kings, who only move once and not in line
+% (+From - Where the piece is, +Color - Which player is moving, +Type - type of piece, +Position - Board situation, -To - Move to make)
+singleMove(From,Color,Type,Position,To):-
+	pieceMoves(Type,Direction),
+	exploreSingleSquare(From,Direction,To,Color,Position).
 
-% Black king checked by white pawns
-pawnThreats(Board, X, Y, black, FoundThreats, IsKingThreatened) :-
-    ThreatRow is Y - 1,
-    RightColumn is X + 1,
-    LeftColumn is X - 1,
-    (
-        member(piece(white, pawn, ThreatRow, RightColumn), Board) ->
-        IsRightThreat is 1,
-        append([], [(ThreatRow, RightColumn)], RightThreat)
-        ;
-        IsRightThreat is 0,
-        append([], [], RightThreat)    
-    ),
-    (
-        member(piece(white, pawn, ThreatRow, LeftColumn), Board) ->
-        IsLeftThreat is 1,
-        append([], [(ThreatRow, LeftColumn)], LeftThreat)
-        ;
-        IsLeftThreat is 0,
-        append([], [], LeftThreat)    
-    ),
-    IsKingThreatened is IsLeftThreat + IsRightThreat,
-    append(LeftThreat, RightThreat, FoundThreats).
-
-% Checks by the enemy king
-kingThreats([], _, _, _, _, [], 0).
-kingThreats([(XDir, YDir)| Tail], Board, Color, X, Y, FoundThreats, FoundNumberOfThreats) :-
-    kingThreats(Tail, Board, Color, X, Y, NewFoundThreats, NewFoundNumberOfThreats),
-    XMove is XDir + X,
-    YMove is YDir + Y,
-    (
-        isSquareHostile(Board, XMove, YMove, Color), member(piece(_, king, XMove, YMove), Board) ->
-        append(NewFoundThreats, [(XMove, YMove)], FoundThreats),
-        FoundNumberOfThreats is NewFoundNumberOfThreats + 1
-        ;
-        append([], NewFoundThreats, FoundThreats),
-        FoundNumberOfThreats is NewFoundNumberOfThreats
-    ).
-
-continuousDirectionThreat((XDir, YDir), X, Y, Board, Color, FoundThreat, DidFindThreat, Piece) :-
-    XStep is XDir + X,
-    YStep is YDir + Y,
-    (
-        isSquareHostile(Board, XStep, YStep, Color), (member(piece(_, Piece, XStep, YStep), Board); member(piece(_, queen, XStep, YStep), Board)) ->
-        DidFindThreat is 1, % Potential expected evaluable error here
-        append([], [(XStep, YStep)], FoundThreat)
-        ;
-        withinBounds(XStep, YStep), \+isSquareFriendly(Board, XStep, YStep, Color), \+isSquareHostile(Board, XStep, YStep, Color) ->
-        continuousDirectionThreat((XDir, YDir), XStep, YStep, Board, Color, NewFoundThreat, NewThreatIndicator, Piece),
-        append([], NewFoundThreat, FoundThreat),
-        DidFindThreat is NewThreatIndicator
-        ;
-        DidFindThreat is 0, % Another expected value threat
-        append([], [], FoundThreat)
-    ).
+% Any list of pieces can be passed, failure of the calling predicate will backtrack to the next possible move
+% (+Color - Who is to move (only relevant for pawns and potential castling), +Position - environment in which to move, +Pieces - which list of pieces to move
+% -Move - Found move)
+legalMoves(Color, Position, pieces(Pawns,_,_,_,_,_), move(From,To)):-
+	member(From,Pawns), 
+	pawnMove(From,Color,Position,To).
+legalMoves(Color, Position, pieces(_,Rooks,_,_,_,_), move(From,To)):-
+	member(From,Rooks), 	
+	continuousMove(From,Color,rook,Position,To).
+legalMoves(Color, Position, pieces(_,_,Knights,_,_,_), move(From,To)):-
+	member(From,Knights),	
+	singleMove(From, Color, knight, Position, To).
+legalMoves(Color, Position, pieces(_,_,_,Bishops,_,_), move(From,To)):-
+	member(From,Bishops),
+	continuousMove(From, Color, bishop, Position, To).
+legalMoves(Color, Position, pieces(_,_,_,_,Queens,_), move(From,To)):-
+	member(From, Queens),	
+	continuousMove(From,Color,queen,Position,To).
+legalMoves(Color, Position, pieces(_,_,_,_,_,King), move(From,To)):-
+	member(From, King),
+	singleMove(From, Color, king, Position,To).

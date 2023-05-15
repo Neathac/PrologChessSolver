@@ -40,8 +40,14 @@ RNBQKBNRPPPPPPPPk-------------------------------pppppppprnbq-bnr // Black king i
 RNBQKBNRP-PPPPPPkP------------------------------pppppppprnbq-bnr // Black king exposed to white knight and bishop
 RNBQKBNRP-PPPPPPQ-------------------------------pppppppprnbqkbnr // White queen in front of white pawns
 -NBQ-BNRPPPPPPPPK-------R-------r---------------pppppppprnbqkbnr // White rook blocking check to white king by black rook
-k---------R-----K-----R----------------------------------------- // Mate in one for white
-K---------r-----k-----r----------------------------------------- // Mate in one for black
+-NBQ-BNRPPPPPPPPK--------------R-------r-------kpppppppprnbq-bn- // Black rook blocking check to black king by white rook
+k---------R-----------R----------------K------------------------ // Mate in one for white by Rook
+K---------r-----k-----r----------------------------------------- // Mate in one for black by Rook
+R---K--------rr----------------------------------R-----------k-- // Mate in one for white by Rook
+R--QK-NR-BPP--B--PN-PP-PP-----P---------bpnbpn--p-p--pppr--q-rk- // Mate in one for black by Bishop
+-K-R----PPP------B---P---p----------p--p-------Q-q-P--b----r-k-- // Mate in one for white by Queen
+k-------p-K-----------------------N----------------------------- // Mate in one for white by knight
+----------------------P---n-------------k--------r------K------- // Mate in one for black by Knight
 */
 
 % Validates the input length and number of found kings

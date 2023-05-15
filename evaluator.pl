@@ -1,81 +1,31 @@
-/*
-:- [inputs].
-:- [rules].
-:- [utils].
-:- [evaluator].
-*/
-% (+A single piece, +Move to evaluate, +State of board, +List of white pieces, +List of BlackPieces, -Score of tried move)
-% Move evaluation for white pieces
-evalMove(piece(white, Piece, X, Y), [MoveX, MoveY], Board, WhitePieces, BlackPieces, Score) :-
-    replaceP(piece(white, Piece, X, Y), piece(neutral, empty, X, Y), Board, MidBoard),
-    replaceP(piece(_, _, MoveX, MoveY), piece(white, Piece, MoveX, MoveY), MidBoard, NewBoard),
-    replaceP(piece(white, Piece, X, Y), piece(white, Piece, MoveX, MoveY), WhitePieces, NewWhitePieces),
-    (
-        member(piece(black, _, MoveX, MoveY), BlackPieces) ->
-        delete(piece(black, _, MoveX, MoveY), BlackPieces, NewBlackPieces)
-        ;
-        append(BlackPieces, [], NewBlackPieces)
-    ),
-    generateMoves(NewBoard, NewBlackPieces, NewMoves),
-    countMoves(NewMoves, MoveCount),
-    findPiece(piece(black, king, _, _), NewBoard, KingX, KingY),
-    exploreKingThreats(KingX, KingY, NewBoard, black, _, FoundThreatNumber),
-    (
-        MoveCount = 0, FoundThreatNumber > 0 ->
-        Score is 999999
-        ;
-        Score is 1
-    ).
+% For a given position, check if the opponent has any way of responding that would put his king into safety
+% This predicate outputs nothing, if it succeeds, enemy king is safe
+% (+Color - Who made the king threat, +Pieces - list of pieces)
+checkEnemyKing(white, piecesPosition(WhitePieces, BlackPieces)) :-
+	legalMoves(black, piecesPosition(WhitePieces, BlackPieces), BlackPieces, move(From, To)),
+    withinBounds(From),
+    withinBounds(To),
+    changePiece(piecesPosition(WhitePieces,BlackPieces), black, From, To, NewPosition),
+	not(canThreaten(NewPosition, white)). % Success means we found a move that puts the king out of danger
+    % Failure backtracks to another legal move until none are available, this fails the predicate and means we found a checkmate position 
 
-% (+A single piece, +Move to evaluate, +State of board, +List of white pieces, +List of BlackPieces, -Score of tried move)
-% Move evaluation of black pieces
-evalMove(piece(black, Piece, X, Y), [MoveX, MoveY], Board, WhitePieces, BlackPieces, Score) :-
-    replaceP(piece(black, Piece, X, Y), piece(neutral, empty, X, Y), Board, MidBoard),
-    replaceP(piece(_, _, MoveX, MoveY), piece(black, Piece, MoveX, MoveY), MidBoard, NewBoard),
-    replaceP(piece(black, Piece, X, Y), piece(black, Piece, MoveX, MoveY), BlackPieces, NewBlackPieces),
-    (
-        member(piece(white, _, MoveX, MoveY), WhitePieces) ->
-        delete(piece(white, _, MoveX, MoveY), WhitePieces, NewWhitePieces)
-        ;
-        append(WhitePieces, [], NewWhitePieces)
-    ),
-    generateMoves(NewBoard, NewWhitePieces, NewMoves),
-    countMoves(NewMoves, MoveCount),
-    findPiece(piece(white, king, _, _), NewBoard, KingX, KingY),
-    exploreKingThreats(KingX, KingY, NewBoard, white, _, FoundThreatNumber),
-    (
-        MoveCount = 0, FoundThreatNumber > 0 ->
-        Score is 999999
-        ;
-        Score is 1
-    ).
+checkEnemyKing(black, piecesPosition(WhitePieces, BlackPieces)) :-
+	legalMoves(white, piecesPosition(WhitePieces, BlackPieces), WhitePieces, move(From, To)),
+    withinBounds(From),
+    withinBounds(To),
+    changePiece(piecesPosition(WhitePieces,BlackPieces), white, From, To, NewPosition),
+	not(canThreaten(NewPosition, black)).
 
-% (+A single piece with associated list of moves, +State of Board, +List of white pieces, +List of black pieces, -Best found score of move, -Best found move)
-% Finds the best rated move for a piece
-evalPieceMoves((_, []), _, _, _, 0, _).
-evalPieceMoves((piece(Color, Piece, X, Y), [(MoveX, MoveY) | Tail]), Board, WhitePieces, BlackPieces, Score, BestFoundMove) :-
-    evalPieceMoves((piece(Color, Piece, X, Y), Tail), Board, WhitePieces, BlackPieces, NewScore, NewBestFoundMove),
-    evalMove(piece(Color, Piece, X, Y), [MoveX, MoveY], Board, WhitePieces, BlackPieces, MoveScore),
-    (
-        NewScore > MoveScore ->
-        Score is NewScore,
-        append(NewBestFoundMove, [], BestFoundMove)
-        ;
-        Score is MoveScore,
-        append([(piece(Color, Piece, X, Y), [MoveX, MoveY])], [], BestFoundMove)
-    ).
+% Once the enemy made his response to a given position, check if any move we can make results in taking the enemy king - equivallent to checkmate
+% Serves for backtracking. Failure means we can't take the enemy king
+% (+Position - list of pieces, +Color - Who is to move and try to take the king)
+canThreaten(piecesPosition(WhitePieces, pieces(BlackPawns,BlackRooks,BlackKnights,BlackBishops,BlackQueens,[(KingX, KingY)])), white) :-
+	legalMoves(white, piecesPosition(WhitePieces, pieces(BlackPawns,BlackRooks,BlackKnights,BlackBishops,BlackQueens,[(KingX, KingY)])), WhitePieces, move(_,(KingX, KingY))).
 
-% (+A list of moves compounded with associated pieces, +Board state, +List of white pieces, +List of black pieces, -Best found move, -Best rating of move found)
-% Evaluates all legal moves according to the evaluation function, then returns the best one found
-evalAllMoves([], _, _, _, _, 0).
-evalAllMoves([Head | Tail], Board, WhitePieces, BlackPieces, ResultingMove, ResultingScore) :-
-    evalAllMoves(Tail, Board, WhitePieces, BlackPieces, NewResultingMove, NewResultingScore),
-    evalPieceMoves(Head, Board, WhitePieces, BlackPieces, PieceScore, PieceMove),
-    (
-        PieceScore > NewResultingScore ->
-        append(PieceMove, [], ResultingMove),
-        ResultingScore is PieceScore
-        ;
-        append(NewResultingMove, [], ResultingMove),
-        ResultingScore is NewResultingScore 
-    ).
+% No king means automatic success
+canThreaten(piecesPosition(WhitePieces, pieces(BlackPawns,BlackRooks,BlackKnights,BlackBishops,BlackQueens,[])), white).
+
+canThreaten(piecesPosition(pieces(Pawns,Rooks,Knights,Bishops,Queens,[(KingX, KingY)]), BlackPieces), black) :-
+	legalMoves(black, piecesPosition(pieces(Pawns,Rooks,Knights,Bishops,Queens,[(KingX, KingY)]), BlackPieces), BlackPieces, move(_,(KingX, KingY))).
+
+canThreaten(piecesPosition(pieces(Pawns,Rooks,Knights,Bishops,Queens,[]), BlackPieces), black).
